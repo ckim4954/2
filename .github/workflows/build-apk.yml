@@ -65,35 +65,33 @@ jobs:
             "build-tools;36.0.0" \
             "platform-tools"
 
-      - name: Verify Android SDK
-        run: |
-          sdkmanager --list_installed
-          java -version
-
       - name: Restore release keystore
         working-directory: ${{ env.PROJECT_DIR }}
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "KEYSTORE_BASE64 secret is missing"
+            echo "ERROR: KEYSTORE_BASE64 is missing"
             exit 1
           fi
 
           echo "$KEYSTORE_BASE64" | base64 --decode > my-upload-key.p12
           test -s my-upload-key.p12
 
+          echo "Keystore restored successfully"
+
       - name: Show release certificate fingerprint
         working-directory: ${{ env.PROJECT_DIR }}
         env:
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
+          echo "Checking release certificate..."
+
           keytool -list -v \
             -keystore my-upload-key.p12 \
             -storetype PKCS12 \
             -alias upload \
-            -storepass "$STORE_PASSWORD" \
-            | grep -E "SHA1:|SHA256:"
+            -storepass "$STORE_PASSWORD"
 
       - name: Build signed Release APK
         working-directory: ${{ env.PROJECT_DIR }}
